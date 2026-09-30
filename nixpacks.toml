@@ -1,5 +1,8 @@
+[providers]
+providers = ["python"]
+
 [phases.setup]
-nixPkgs = ["python310"]
+nixPkgs = ["python310", "python310Packages.pip"]
 
 [phases.install]
 cmds = ["pip install -r backend/requirements.txt"]
@@ -8,4 +11,4 @@ cmds = ["pip install -r backend/requirements.txt"]
 cmds = ["echo 'Build complete'"]
 
 [start]
-cmd = "cd backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:$PORT"
+cmd = "bash start.sh"
