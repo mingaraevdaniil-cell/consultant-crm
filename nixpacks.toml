@@ -1,9 +1,6 @@
 [providers]
 python = "3.11"
 
-[phases.setup]
-nixPkgs = ["python311"]
-
 [phases.install]
 cmds = ["python -m pip install -r requirements.txt"]
 
