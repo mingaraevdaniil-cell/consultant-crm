@@ -1,7 +1,7 @@
 // API базовый URL - автоматически определяется
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:8000/api'  // Для локальной разработки
-    : '/api';  // Для production (через Nginx)
+    : 'https://consultant-crm-production.up.railway.app/api';  // Railway backend
 
 let allClients = [];
 
