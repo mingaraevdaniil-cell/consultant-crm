@@ -51,17 +51,21 @@ const Auth = {
         }
         
         const headers = {
+            'Content-Type': 'application/json',
             ...options.headers,
             'Authorization': `Bearer ${token}`
         };
         
-        if (!headers['Content-Type'] && options.body && typeof options.body !== 'string') {
-            headers['Content-Type'] = 'application/json';
+        // Если body - объект, сериализуем в JSON
+        let body = options.body;
+        if (body && typeof body === 'object' && !(body instanceof FormData)) {
+            body = JSON.stringify(body);
         }
         
         const response = await fetch(url, {
             ...options,
-            headers
+            headers,
+            body
         });
         
         // Если 401 - токен истек или недействителен
