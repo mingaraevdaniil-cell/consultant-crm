@@ -1,8 +1,5 @@
-[providers]
-python = "3.11"
-
-[phases.install]
-cmds = ["python -m pip install -r requirements.txt"]
+[phases.build]
+cmds = ["echo 'Building project'"]
 
 [start]
 cmd = "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
