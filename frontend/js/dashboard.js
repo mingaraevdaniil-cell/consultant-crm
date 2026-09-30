@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Загрузка статистики для дашборда
 async function loadDashboardStats() {
     try {
-        const response = await fetch(`${API_URL}/dashboard`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/dashboard`);
         if (!response.ok) throw new Error('Ошибка загрузки данных');
         
         const data = await response.json();

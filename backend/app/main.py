@@ -1,13 +1,14 @@
 """
 Главный файл FastAPI приложения
 """
-from fastapi import FastAPI, Depends, HTTPException, Query
+from datetime import timedelta
+from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from . import crud, models, schemas
+from . import crud, models, schemas, auth
 from .database import engine, get_db
 
 # Создание таблиц в БД
@@ -44,10 +45,70 @@ app.add_middleware(
 )
 
 
+# === Эндпоинты аутентификации ===
+
+@app.post("/api/auth/login", response_model=schemas.Token)
+def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
+    """Вход в систему"""
+    user = auth.authenticate_user(db, login_data.username, login_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/auth/me", response_model=schemas.User)
+async def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
+    """Получить информацию о текущем пользователе"""
+    return current_user
+
+
+@app.post("/api/auth/register", response_model=schemas.User, status_code=201)
+def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Регистрация нового пользователя (для первоначальной настройки)"""
+    # Проверка существования пользователя
+    existing_user = db.query(models.User).filter(
+        models.User.username == user_data.username
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Пользователь с таким именем уже существует"
+        )
+    
+    # Создание нового пользователя
+    hashed_password = auth.get_password_hash(user_data.password)
+    db_user = models.User(
+        username=user_data.username,
+        full_name=user_data.full_name,
+        hashed_password=hashed_password,
+        is_active=True
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user
+
+
 # === Эндпоинты для дашборда ===
 
 @app.get("/api/dashboard", response_model=schemas.DashboardStats)
-def get_dashboard_statistics(db: Session = Depends(get_db)):
+def get_dashboard_statistics(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Получить статистику для дашборда"""
     return crud.get_dashboard_stats(db)
 
@@ -59,7 +120,8 @@ def read_clients(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     """Получить список клиентов с пагинацией и поиском"""
     clients = crud.get_clients(db, skip=skip, limit=limit, search=search)
@@ -69,7 +131,8 @@ def read_clients(
 @app.get("/api/clients/count")
 def count_clients(
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     """Получить общее количество клиентов"""
     count = crud.get_clients_count(db, search=search)
@@ -77,7 +140,11 @@ def count_clients(
 
 
 @app.get("/api/clients/{client_id}", response_model=schemas.ClientWithRequests)
-def read_client(client_id: int, db: Session = Depends(get_db)):
+def read_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Получить клиента по ID с его заявками"""
     db_client = crud.get_client(db, client_id=client_id)
     if db_client is None:
@@ -86,7 +153,11 @@ def read_client(client_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/clients", response_model=schemas.Client, status_code=201)
-def create_client(client: schemas.ClientCreate, db: Session = Depends(get_db)):
+def create_client(
+    client: schemas.ClientCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Создать нового клиента"""
     return crud.create_client(db=db, client=client)
 
@@ -95,7 +166,8 @@ def create_client(client: schemas.ClientCreate, db: Session = Depends(get_db)):
 def update_client(
     client_id: int,
     client: schemas.ClientUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     """Обновить данные клиента"""
     db_client = crud.update_client(db, client_id=client_id, client=client)
@@ -105,7 +177,11 @@ def update_client(
 
 
 @app.delete("/api/clients/{client_id}")
-def delete_client(client_id: int, db: Session = Depends(get_db)):
+def delete_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Удалить клиента"""
     success = crud.delete_client(db, client_id=client_id)
     if not success:
@@ -121,7 +197,8 @@ def read_requests(
     limit: int = Query(100, ge=1, le=1000),
     client_id: Optional[int] = None,
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     """Получить список заявок с фильтрацией"""
     requests = crud.get_requests(
@@ -131,7 +208,11 @@ def read_requests(
 
 
 @app.get("/api/requests/{request_id}", response_model=schemas.Request)
-def read_request(request_id: int, db: Session = Depends(get_db)):
+def read_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Получить заявку по ID"""
     db_request = crud.get_request(db, request_id=request_id)
     if db_request is None:
@@ -140,7 +221,11 @@ def read_request(request_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/requests", response_model=schemas.Request, status_code=201)
-def create_request(request: schemas.RequestCreate, db: Session = Depends(get_db)):
+def create_request(
+    request: schemas.RequestCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Создать новую заявку"""
     # Проверка существования клиента
     client = crud.get_client(db, client_id=request.client_id)
@@ -153,7 +238,8 @@ def create_request(request: schemas.RequestCreate, db: Session = Depends(get_db)
 def update_request(
     request_id: int,
     request: schemas.RequestUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     """Обновить заявку (частичное обновление)"""
     db_request = crud.update_request(db, request_id=request_id, request=request)
@@ -163,7 +249,11 @@ def update_request(
 
 
 @app.delete("/api/requests/{request_id}")
-def delete_request(request_id: int, db: Session = Depends(get_db)):
+def delete_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
     """Удалить заявку"""
     success = crud.delete_request(db, request_id=request_id)
     if not success:

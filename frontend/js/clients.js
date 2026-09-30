@@ -36,13 +36,13 @@ async function loadClients() {
             params.append('search', currentSearch);
         }
         
-        const response = await fetch(`${API_URL}/clients?${params}`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/clients?${params}`);
         if (!response.ok) throw new Error('Ошибка загрузки клиентов');
         
         const clients = await response.json();
         
         // Получение общего количества
-        const countResponse = await fetch(`${API_URL}/clients/count?${currentSearch ? 'search=' + currentSearch : ''}`);
+        const countResponse = await Auth.fetchWithAuth(`${API_URL}/clients/count?${currentSearch ? 'search=' + currentSearch : ''}`);
         const { count } = await countResponse.json();
         
         renderClients(clients);
@@ -137,7 +137,7 @@ function openClientModal() {
 // Просмотр информации о клиенте
 async function viewClient(clientId) {
     try {
-        const response = await fetch(`${API_URL}/clients/${clientId}`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/clients/${clientId}`);
         if (!response.ok) throw new Error('Ошибка загрузки данных клиента');
         
         const client = await response.json();
@@ -211,7 +211,7 @@ function renderClientRequests(requests) {
 // Редактировать клиента
 async function editClient(clientId) {
     try {
-        const response = await fetch(`${API_URL}/clients/${clientId}`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/clients/${clientId}`);
         if (!response.ok) throw new Error('Ошибка загрузки данных клиента');
         
         const client = await response.json();
@@ -253,9 +253,10 @@ async function saveClient() {
         const url = clientId ? `${API_URL}/clients/${clientId}` : `${API_URL}/clients`;
         const method = clientId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const response = await Auth.fetchWithAuth(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(clientData)
+        });
             body: JSON.stringify(clientData)
         });
         
@@ -278,7 +279,7 @@ async function deleteClient(clientId) {
     }
     
     try {
-        const response = await fetch(`${API_URL}/clients/${clientId}`, {
+        const response = await Auth.fetchWithAuth(`${API_URL}/clients/${clientId}`, {
             method: 'DELETE'
         });
         

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Загрузка списка клиентов для селекта
 async function loadClients() {
     try {
-        const response = await fetch(`${API_URL}/clients?limit=1000`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/clients?limit=1000`);
         if (!response.ok) throw new Error('Ошибка загрузки клиентов');
         
         allClients = await response.json();
@@ -51,7 +51,7 @@ async function loadRequests() {
             params.append('status', statusFilter);
         }
         
-        const response = await fetch(`${API_URL}/requests?${params}`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/requests?${params}`);
         if (!response.ok) throw new Error('Ошибка загрузки заявок');
         
         const requests = await response.json();
@@ -116,7 +116,7 @@ function openRequestModal() {
 // Редактировать заявку
 async function editRequest(requestId) {
     try {
-        const response = await fetch(`${API_URL}/requests/${requestId}`);
+        const response = await Auth.fetchWithAuth(`${API_URL}/requests/${requestId}`);
         if (!response.ok) throw new Error('Ошибка загрузки данных заявки');
         
         const request = await response.json();
@@ -172,9 +172,10 @@ async function saveRequest() {
             method = 'POST';
         }
         
-        const response = await fetch(url, {
+        const response = await Auth.fetchWithAuth(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
             body: JSON.stringify(requestData)
         });
         
@@ -199,9 +200,10 @@ async function saveRequest() {
 // Быстрое обновление статуса заявки
 async function updateRequestStatus(requestId, newStatus) {
     try {
-        const response = await fetch(`${API_URL}/requests/${requestId}`, {
+        const response = await Auth.fetchWithAuth(`${API_URL}/requests/${requestId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
             body: JSON.stringify({ status: newStatus })
         });
         
@@ -223,7 +225,7 @@ async function deleteRequest(requestId) {
     }
     
     try {
-        const response = await fetch(`${API_URL}/requests/${requestId}`, {
+        const response = await Auth.fetchWithAuth(`${API_URL}/requests/${requestId}`, {
             method: 'DELETE'
         });
         
