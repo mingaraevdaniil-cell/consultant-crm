@@ -24,13 +24,22 @@ app = FastAPI(
 import os
 
 # Определяем разрешённые origins
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    ALLOWED_ORIGINS = [origin.strip() for origin in allowed_origins_env.split(",")]
+else:
+    # Дефолтные origins для разработки и production
+    ALLOWED_ORIGINS = [
+        "https://consultant-crm-frontend.vercel.app",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS[0] != "*" else ["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
