@@ -3,8 +3,9 @@
 """
 from datetime import datetime, timedelta
 from typing import Optional
+import hashlib
+import secrets
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -17,29 +18,36 @@ SECRET_KEY = "your-secret-key-change-this-in-production-2024"  # В production �
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 часов
 
-# Контекст для хеширования паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 # Схема безопасности
 security = HTTPBearer()
 
 
+def hash_password(password: str) -> str:
+    """Хеширование пароля с солью (SHA-256)"""
+    # Генерируем соль
+    salt = secrets.token_hex(16)
+    # Хешируем пароль с солью
+    pwd_hash = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    # Возвращаем соль + хеш
+    return f"{salt}${pwd_hash}"
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверка пароля"""
-    # Ограничение bcrypt - максимум 72 байта
-    password_bytes = plain_password.encode('utf-8')
-    if len(password_bytes) > 72:
-        plain_password = password_bytes[:72].decode('utf-8', errors='ignore')
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        # Разделяем соль и хеш
+        salt, pwd_hash = hashed_password.split('$')
+        # Хешируем введенный пароль с той же солью
+        new_hash = hashlib.sha256((plain_password + salt).encode('utf-8')).hexdigest()
+        # Сравниваем хеши
+        return new_hash == pwd_hash
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Хеширование пароля"""
-    # Ограничение bcrypt - максимум 72 байта
-    password_bytes = password.encode('utf-8')
-    if len(password_bytes) > 72:
-        password = password_bytes[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(password)
+    """Хеширование пароля (алиас для совместимости)"""
+    return hash_password(password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
