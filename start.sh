@@ -1,2 +1,2 @@
 ﻿#!/bin/bash
-uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
