@@ -24,7 +24,7 @@ def init_admin():
         if not existing:
             admin = models.User(
                 username="admin",
-                full_name="Администратор",
+                full_name="Admin",
                 hashed_password=auth.get_password_hash("admin123"),
                 is_active=True
             )
