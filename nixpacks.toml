@@ -4,7 +4,7 @@ providers = ["python"]
 nixPkgs = ["python310", "python310Packages.pip"]
 
 [phases.install]
-cmds = ["pip install -r backend/requirements.txt"]
+cmds = ["pip install --break-system-packages -r backend/requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
