@@ -9,7 +9,10 @@ let currentSearch = '';
 
 // Загрузка клиентов при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    loadClients();
+    // Небольшая задержка чтобы Auth модуль успел инициализироваться
+    setTimeout(() => {
+        loadClients();
+    }, 100);
     
     // Поиск с задержкой
     const searchInput = document.getElementById('searchInput');

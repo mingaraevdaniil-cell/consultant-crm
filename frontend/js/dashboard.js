@@ -5,7 +5,10 @@ const API_URL = window.location.hostname === 'localhost'
 
 // Загрузка статистики при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    loadDashboardStats();
+    // Небольшая задержка чтобы Auth модуль успел инициализироваться
+    setTimeout(() => {
+        loadDashboardStats();
+    }, 100);
 });
 
 // Загрузка статистики для дашборда

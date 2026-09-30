@@ -7,8 +7,11 @@ let allClients = [];
 
 // Загрузка данных при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    loadClients();
-    loadRequests();
+    // Небольшая задержка чтобы Auth модуль успел инициализироваться
+    setTimeout(() => {
+        loadClients();
+        loadRequests();
+    }, 100);
 });
 
 // Загрузка списка клиентов для селекта
