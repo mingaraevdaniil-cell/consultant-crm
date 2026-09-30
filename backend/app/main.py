@@ -14,6 +14,34 @@ from .database import engine, get_db
 # Создание таблиц в БД
 models.Base.metadata.create_all(bind=engine)
 
+# Создание администратора по умолчанию при первом запуске
+def init_admin():
+    """Создание администратора если его нет"""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        existing = db.query(models.User).filter(models.User.username == "admin").first()
+        if not existing:
+            admin = models.User(
+                username="admin",
+                full_name="Администратор",
+                hashed_password=auth.get_password_hash("admin123"),
+                is_active=True
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Администратор создан: admin / admin123")
+        else:
+            print("✅ Администратор уже существует")
+    except Exception as e:
+        print(f"⚠️ Ошибка создания администратора: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+# Инициализация админа при старте
+init_admin()
+
 # Инициализация FastAPI приложения
 app = FastAPI(
     title="Консульт CRM",
