@@ -260,8 +260,6 @@ async function saveClient() {
             method: method,
             body: JSON.stringify(clientData)
         });
-            body: JSON.stringify(clientData)
-        });
         
         if (!response.ok) throw new Error('Ошибка сохранения клиента');
         

@@ -179,8 +179,6 @@ async function saveRequest() {
             method: method,
             body: JSON.stringify(requestData)
         });
-            body: JSON.stringify(requestData)
-        });
         
         if (!response.ok) {
             const error = await response.json();
@@ -205,8 +203,6 @@ async function updateRequestStatus(requestId, newStatus) {
     try {
         const response = await Auth.fetchWithAuth(`${API_URL}/requests/${requestId}`, {
             method: 'PATCH',
-            body: JSON.stringify({ status: newStatus })
-        });
             body: JSON.stringify({ status: newStatus })
         });
         
